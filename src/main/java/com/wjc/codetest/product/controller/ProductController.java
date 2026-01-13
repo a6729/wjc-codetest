@@ -60,6 +60,21 @@ public class ProductController {
     @PostMapping(value = "/create/product")
     public ResponseEntity<Product> createProduct(@RequestBody CreateProductRequest dto){
         Product product = productService.create(dto);
+        /**
+         * 1. 문제: 보안적 이슈와 의도치 않은 API의 스펙 변동 가능성
+         * 2. 원인: HTTP Response Body에 Entity 인스턴스를 응답
+         * 3. 개선안: productService.create(); 메서드의 로직을 보면 JPA를 통해 DB에 값을 저장하고 그 리턴 값을 그대로 반환하고 있습니다.
+         *          이 예제코드(Product)의 경우에는 민감한 데이터가 포함되어 있지 않지만, 클라이언트에 노출되면 안되는 필드/데이터가 존재할 수 있습니다.
+         *
+         *          또한 Entity 클래스는 DB와 밀접한 연관이 있습니다.
+         *          실제로 DB에 필드가 추가되는 경우 Entity에도 매핑을 진행하기 위해 멤버변수(필드)를 추가하게 됩니다.
+         *          그러나 추가되는 필드의 경우 비즈니스와 상관 없는 경우가 존재할 수도 있습니다.
+         *          그런 경우 필요하지 않은 경우에도 RestAPI의 응답 스펙이 변경된다고 생각합니다.
+         *
+         *          위와 같은 근거를 바탕으로 새로운 데이터를 생성(create)하는 경우에는 HTTP Status를 200(OK) 또는 201(Created)로 지정하고,
+         *          HTTP Response Body에 생성된 데이터를 조회할 수 있는 키(id, product_id)를 전달하거나
+         *          필요한 데이터만 선별하여 별도의 VO 클래스를 생성하여 HTTP Response Body에 전달하는 것이 좋을 것 같습니다.
+         */
         return ResponseEntity.ok(product);
     }
 
@@ -93,6 +108,21 @@ public class ProductController {
     @PostMapping(value = "/update/product")
     public ResponseEntity<Product> updateProduct(@RequestBody UpdateProductRequest dto){
         Product product = productService.update(dto);
+        /**
+         * 1. 문제: 보안적 이슈와 의도치 않은 API의 스펙 변동 가능성
+         * 2. 원인: HTTP Response Body에 Entity 인스턴스를 응답
+         * 3. 개선안: productService.update(); 메서드의 로직을 보면 JPA를 통해 DB에 값을 업데이트하고 그 리턴 값을 그대로 반환하고 있습니다.
+         *          이 예제코드(Product)의 경우에는 민감한 데이터가 포함되어 있지 않지만, 클라이언트에 노출되면 안되는 필드/데이터가 존재할 수 있습니다.
+         *
+         *          또한 Entity 클래스는 DB와 밀접한 연관이 있습니다.
+         *          실제로 DB에 필드가 추가되는 경우 Entity에도 매핑을 진행하기 위해 멤버변수(필드)를 추가하게 됩니다.
+         *          그러나 추가되는 필드의 경우 비즈니스와 상관 없는 경우가 존재할 수도 있습니다.
+         *          그런 경우 필요하지 않은 경우에도 RestAPI의 응답 스펙이 변경된다고 생각합니다.
+         *
+         *          위와 같은 근거를 바탕으로 데이터를 업데이트하는 경우에는 HTTP Status를 200(OK)으로 지정하고,
+         *          HTTP Response Body에 업데이트 된 데이터를 조회할 수 있는 키(id, product_id)를 전달하거나
+         *          필요한 데이터만 선별하여 별도의 VO 클래스를 생성하여 HTTP Response Body에 전달하는 것이 좋을 것 같습니다.
+         */
         return ResponseEntity.ok(product);
     }
 
@@ -106,6 +136,10 @@ public class ProductController {
      *          따라서 HTTP Method를 아래와 같이 변경하는 것이 좋을 것 같습니다.
      *          기존 : POST /product/list
      *          변경 : GET /product/list
+     *
+     *          추가로, GET 방식의 Request인 경우에도 HTTP Body를 전송하지 못하는 것은 아니나
+     *          HTTP 표준 상 query string으로 전송하는 것이 더 적합한 방식입니다.
+     *          따라서 @RequestBody 어노테이션을 제거하여 Spring MVC에서 query string의 파라미터를 매핑할 수 있도록 변경하는 것이 좋을 것 같습니다.
      */
     @PostMapping(value = "/product/list")
     public ResponseEntity<ProductListResponse> getProductListByCategory(@RequestBody GetProductListRequest dto){
